@@ -1,11 +1,13 @@
 // YOUR CODE HERE:
 
 $(document).ready(function(){
-  var user = window.location.search.split('=')[1];
+  var user = window.location.search.split('=')[1].replace(/%27/g,"'");
   var friendList = {};
   var roomList = {};
+  var room = '';
+
   function getData(){
-  var currentTime = new Date().getTime()-1000;
+    var currentTime = new Date().getTime()-1000;
 
     $.ajax({
       url: 'https://api.parse.com/1/classes/chatterbox?order=-createdAt',
@@ -16,20 +18,37 @@ $(document).ready(function(){
         var messages = data.results;
         var newPosts = [];
 
-
+        // Filter by room
+        // display messages only from chosen room
+        // encode roomname
         _.each(messages, function(message) {
           var roomName = message.roomname;
-          if(!roomList[roomName]) {
-            roomList[roomName] = roomName;
+
+          if( !roomList[roomName] && (roomName !== "")
+             && (roomName !== undefined) && (!roomName.match(/undefined/g)) ) {
+            var encodedRoom = htmlEncode(roomName);
+            if(roomName===room) {
+              $('.room-list').prepend('<li>' + '<a class="active">' + htmlDecode(encodedRoom) + '</a>' + '</li>');
+            } else {
+              $('.room-list').prepend('<li>' + '<a>' + htmlDecode(encodedRoom) + '</a>' + '</li>');
+            }
+          roomList[roomName] = roomName;
           }
         });
 
+        // Filter by time
         _.each(messages, function(message) {
           var updatedAt = Date.parse(message.updatedAt);
-          if(updatedAt >=currentTime) {
-            newPosts.push(message);
+          if(updatedAt >= currentTime) {
+            if(room === '') {
+              newPosts.push(message);
+            } else if(message.roomname === room) {
+              newPosts.push(message);
+            }
           }
         });
+
+        // Messages
         _.each(newPosts, function(message){
           var encodedUser = htmlEncode(message.username);
           var encodedText = htmlEncode(message.text);
@@ -44,7 +63,7 @@ $(document).ready(function(){
       },
 
       error: function (data) {
-        console.error('chatterbox: Failed to send message');
+        console.error('chatterbox: Failed to get message');
       }
     });
 
@@ -52,7 +71,7 @@ $(document).ready(function(){
 
 
   getData();
-  setInterval(getData, 1000);
+  setInterval(getData, 1100);
 
   function htmlDecode(input){
     var e = document.createElement('div');
@@ -77,16 +96,16 @@ $(document).ready(function(){
   }
 
   // POST
-  $('.message-submit').on('click', function(e) {
+  $('.messageform-submit').on('click', function(e) {
     e.preventDefault();
-
-    var inputVal = $('#message').val();
+    var inputVal = $('#messageInput').val();
     var message = {
       username: user,
       text: inputVal,
-      roomname: 'hr20'
+      roomname: room
     };
-    $('#message').val('');
+
+    $('#messageInput').val('');
 
     $.ajax({
       url: 'https://api.parse.com/1/classes/chatterbox',
@@ -112,8 +131,30 @@ $(document).ready(function(){
     friendList[name] = name;
   });
 
-  // Append roomList to .room-list on load
-  // Add listeners to each room link
+  // Toggling active room
+  $('.room-list').on('click','a', function(e) {
+    e.preventDefault();
+    $('.active').removeClass('active');
+    $(this).addClass('active');
+    var name = $(this).text();
+    room = name;
+  });
+
+  // Create Room
+  $('.roomform-submit').on('click', function(e) {
+    e.preventDefault();
+    $('.active').removeClass('active');
+    var roomVal = $('#roomInput').val();
+    room = roomVal;
+    $('.messageform-submit').trigger('click');
+    $('#roomInput').val('');
+  });
+
+  $('.global-room').on('click',function(e){
+    e.preventDefault();
+    $('.active').removeClass('active');
+    room='';
+  });
 
 
 });

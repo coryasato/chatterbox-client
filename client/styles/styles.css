@@ -5,6 +5,10 @@ body {
     font-family: arial, sans-serif;
 }
 
+li {
+    text-decoration: none;
+}
+
 #main {
     margin: auto;
     text-align: left;
@@ -86,5 +90,9 @@ form input[type=text] {
 }
 
 .friend {
+    color: red;
+}
+
+.active {
     color: red;
 }
